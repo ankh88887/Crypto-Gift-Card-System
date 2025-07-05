@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Gift Card System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎁 Crypto Gift Card System</h1>
+            <p>Buy and redeem gift cards on the Ethereum blockchain</p>
+        </div>
+
+        <div class="content">
+            <!-- Wallet Connection Section -->
+            <div class="wallet-section">
+                <div id="wallet-status">
+                    <button id="connect-wallet" class="btn">Connect MetaMask Wallet</button>
+                </div>
+                <div id="account-info" class="account-info hidden">
+                    <strong>Connected Account:</strong> <span id="account-address"></span><br>
+                    <strong>Balance:</strong> <span id="account-balance"></span> ETH
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-messages"></div>
+
+            <!-- Buy Gift Card Section -->
+            <div class="section">
+                <h2>🛒 Buy Gift Card</h2>
+                <div class="form-group">
+                    <label for="buy-code">Gift Card Code:</label>
+                    <input type="text" id="buy-code" placeholder="Enter a unique code (e.g., HAPPYBIRTHDAY2025)">
+                </div>
+                <div class="form-group">
+                    <label for="buy-amount">Amount (ETH):</label>
+                    <input type="number" id="buy-amount" step="0.001" min="0.001" placeholder="Minimum 0.001 ETH">
+                </div>
+                <button id="buy-btn" class="btn" disabled>Buy Gift Card</button>
+            </div>
+
+            <!-- Redeem Gift Card Section -->
+            <div class="section">
+                <h2>💎 Redeem Gift Card</h2>
+                <div class="form-group">
+                    <label for="redeem-code">Gift Card Code:</label>
+                    <input type="text" id="redeem-code" placeholder="Enter your gift card code">
+                </div>
+                <button id="redeem-btn" class="btn" disabled>Redeem Gift Card</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
