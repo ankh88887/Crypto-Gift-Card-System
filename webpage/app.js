@@ -1,5 +1,5 @@
 // Contract configuration
-const CONTRACT_ADDRESS = 'YOUR_CONTRACT_ADDRESS_HERE';
+const CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 const CONTRACT_ABI = [
     "function buy(bytes32 codeHash) public payable",
     "function redeem(string memory code) public",
