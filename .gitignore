@@ -23,3 +23,18 @@ artifacts/
 
 # Coverage reports
 coverage/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Pytest
+.pytest_cache/
+.cache/
+.benchmarks/
+
+# Coverage (Python)
+.coverage*
+htmlcov/
