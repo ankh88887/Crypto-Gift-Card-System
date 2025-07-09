@@ -29,6 +29,50 @@ const redeemBtn = document.getElementById('redeem-btn');
 const checkBtn = document.getElementById('check-btn'); // Bonus: Gift card expiration
 const cardStatus = document.getElementById('card-status'); // Bonus: Gift card expiration
 
+// Wallet management DOM elements
+const switchAccountBtn = document.getElementById('switch-account-btn');
+const disconnectBtn = document.getElementById('disconnect-btn');
+
+// Switch account function
+async function switchAccount() {
+    try {
+        showStatus('Opening account selection...', 'info');
+        
+        // Request permission to connect different accounts
+        await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{
+                eth_accounts: {}
+            }]
+        });
+        
+        // Reconnect with the newly selected account
+        await connectWallet();
+        
+        showStatus('Account switched successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error switching account:', error);
+        if (error.code === 4001) {
+            showStatus('Account switch cancelled by user', 'info');
+        } else {
+            showStatus('Failed to switch account. Please try again.', 'error');
+        }
+    }
+}
+
+// Disconnect function
+async function disconnectWallet() {
+    try {
+        // Reset the connection state
+        resetWalletConnection();
+        showStatus('Wallet disconnected successfully', 'success');
+    } catch (error) {
+        console.error('Error disconnecting wallet:', error);
+        showStatus('Error disconnecting wallet', 'error');
+    }
+}
+
 // Bonus: Utility functions for expiration handling
 function formatExpirationDate(timestamp) {
     const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
@@ -82,7 +126,7 @@ function hashCode(code) {
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(code));
 }
 
-// Wallet connection functions
+// ENHANCED: Wallet connection functions with button management
 async function connectWallet() {
     try {
         // Check if MetaMask is installed
@@ -113,6 +157,14 @@ async function connectWallet() {
         // Bonus: Enable check button if it exists
         if (checkBtn) {
             checkBtn.disabled = false;
+        }
+
+        // Show wallet action buttons
+        if (switchAccountBtn) {
+            switchAccountBtn.style.display = 'inline-block';
+        }
+        if (disconnectBtn) {
+            disconnectBtn.style.display = 'inline-block';
         }
 
         showStatus('Wallet connected successfully!', 'success');
@@ -154,6 +206,7 @@ function handleChainChanged(chainId) {
     location.reload();
 }
 
+// ENHANCED: Reset wallet connection with button management
 function resetWalletConnection() {
     provider = null;
     signer = null;
@@ -169,6 +222,14 @@ function resetWalletConnection() {
     // Bonus: Disable check button if it exists
     if (checkBtn) {
         checkBtn.disabled = true;
+    }
+    
+    // Hide wallet action buttons
+    if (switchAccountBtn) {
+        switchAccountBtn.style.display = 'none';
+    }
+    if (disconnectBtn) {
+        disconnectBtn.style.display = 'none';
     }
     
     showStatus('Wallet disconnected', 'info');
@@ -407,6 +468,15 @@ redeemBtn.addEventListener('click', redeemGiftCard);
 // Bonus: Add event listener for check button if it exists
 if (checkBtn) {
     checkBtn.addEventListener('click', checkGiftCardStatus);
+}
+
+// Add event listeners for wallet management buttons
+if (switchAccountBtn) {
+    switchAccountBtn.addEventListener('click', switchAccount);
+}
+
+if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', disconnectWallet);
 }
 
 // Initialize app
