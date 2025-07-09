@@ -52,9 +52,20 @@
                 </div>
                 <button id="redeem-btn" class="btn" disabled>Redeem Gift Card</button>
             </div>
+
+            <!-- NEW: Gift Card Status Checker -->
+            <div class="section">
+                <h2>🔍 Check Gift Card Status</h2>
+                <div class="form-group">
+                    <label for="check-code">Gift Card Code:</label>
+                    <input type="text" id="check-code" placeholder="Enter gift card code to check status">
+                </div>
+                <button id="check-btn" class="btn" disabled>Check Status</button>
+                <div id="card-status" class="card-status hidden"></div>
+            </div>
         </div>
     </div>
-
+    
     <script src="app.js"></script>
 </body>
 </html>

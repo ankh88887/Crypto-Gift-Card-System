@@ -150,3 +150,31 @@ body {
 .account-info strong {
     color: #2d5a2d;
 }
+
+.card-status {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 15px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.card-status.expired {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.card-status.expiring-soon {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.card-status.valid {
+    background: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}

@@ -8,12 +8,18 @@ contract GiftCard {
     // Mapping to track redeemed codes
     mapping(bytes32 => bool) private redeemed;
     
+    // Bonus: Mapping to track purchase timestamps
+    mapping(bytes32 => uint256) private purchaseTime;
+    
     // Events for logging
     event GiftCardPurchased(bytes32 indexed codeHash, uint256 value, address buyer);
     event GiftCardRedeemed(bytes32 indexed codeHash, uint256 value, address redeemer);
     
     // Minimum gift card value (0.001 ETH)
     uint256 public constant MIN_VALUE = 0.001 ether;
+    
+    // Bonus: Expiration period (30 days in seconds)
+    uint256 public constant EXPIRATION_PERIOD = 30 days;
     
     /**
      * @dev Buy a gift card with a unique code hash
@@ -24,6 +30,7 @@ contract GiftCard {
         require(giftCards[codeHash] == 0, "Gift card with this code already exists");
         
         giftCards[codeHash] = msg.value;
+        purchaseTime[codeHash] = block.timestamp; // Bonus: Store purchase time
         emit GiftCardPurchased(codeHash, msg.value, msg.sender);
     }
     
@@ -36,6 +43,7 @@ contract GiftCard {
         
         require(giftCards[codeHash] > 0, "Gift card does not exist");
         require(!redeemed[codeHash], "Gift card has already been redeemed");
+        require(!isExpired(codeHash), "Gift card has expired"); // Bonus: Check expiration
         
         uint256 value = giftCards[codeHash];
         redeemed[codeHash] = true;
@@ -62,5 +70,41 @@ contract GiftCard {
      */
     function isRedeemed(bytes32 codeHash) public view returns (bool) {
         return redeemed[codeHash];
+    }
+    
+    // Bonus: Check if a gift card has expired
+    /**
+     * @dev Check if a gift card has expired
+     * @param codeHash The hash of the gift card code
+     * @return True if expired, false otherwise
+     */
+    function isExpired(bytes32 codeHash) public view returns (bool) {
+        if (giftCards[codeHash] == 0) {
+            return false; // Non-existent gift cards are not expired
+        }
+        return block.timestamp > purchaseTime[codeHash] + EXPIRATION_PERIOD;
+    }
+    
+    // Bonus: Get purchase timestamp
+    /**
+     * @dev Get the purchase timestamp of a gift card
+     * @param codeHash The hash of the gift card code
+     * @return The timestamp when the gift card was purchased
+     */
+    function getPurchaseTime(bytes32 codeHash) public view returns (uint256) {
+        return purchaseTime[codeHash];
+    }
+    
+    // Bonus: Get expiration timestamp
+    /**
+     * @dev Get the expiration timestamp of a gift card
+     * @param codeHash The hash of the gift card code
+     * @return The timestamp when the gift card expires
+     */
+    function getExpirationTime(bytes32 codeHash) public view returns (uint256) {
+        if (giftCards[codeHash] == 0) {
+            return 0; // Non-existent gift cards don't have expiration
+        }
+        return purchaseTime[codeHash] + EXPIRATION_PERIOD;
     }
 }
