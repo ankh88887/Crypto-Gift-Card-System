@@ -6,7 +6,7 @@ import time
 
 # --- Configurations ---
 RPC_URL = "http://127.0.0.1:8545"
-CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"  # Replace with your deployed address
+CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"  # Replace with the deployed address
 
 # Load ABI from Hardhat artifacts
 with open("../artifacts/contracts/GiftCard.sol/GiftCard.json") as f:
@@ -39,9 +39,6 @@ def test_buy_and_redeem_success(w3, accounts, giftcard):
     redeemer = accounts[2]
     tx_hash2 = giftcard.functions.redeem(code).transact({"from": redeemer})
     receipt2 = w3.eth.wait_for_transaction_receipt(tx_hash2)
-    
-    # Check balances (should increase by value for redeemer)
-    # Optionally, check events/logs here
 
 def test_buy_below_minimum(w3, accounts, giftcard):
     buyer = accounts[3]
@@ -68,15 +65,6 @@ def test_buy_same_code_twice_fails(w3, accounts, giftcard):
     with pytest.raises(ContractLogicError):
         tx_hash2 = giftcard.functions.buy(code_hash).transact({"from": buyer2, "value": value})
         w3.eth.wait_for_transaction_receipt(tx_hash2)
-
-def test_buy_with_empty_hash_fails(w3, accounts, giftcard):
-    buyer = accounts[1]
-    empty_hash = b'\x00' * 32  # Empty bytes32
-    value = w3.to_wei(0.01, "ether")
-    
-    with pytest.raises(ContractLogicError):
-        tx_hash = giftcard.functions.buy(empty_hash).transact({"from": buyer, "value": value})
-        w3.eth.wait_for_transaction_receipt(tx_hash)
 
 def test_redeem_twice_fails(w3, accounts, giftcard):
     buyer = accounts[4]

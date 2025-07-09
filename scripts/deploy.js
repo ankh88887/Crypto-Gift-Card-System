@@ -17,7 +17,9 @@ async function main() {
   
   // Save the contract address for easy access
   console.log("\n=== IMPORTANT ===");
-  console.log("Copy this contract address to your wepage/app.js file:");
+  console.log("Copy this contract address to your webpage/app.js file.\n");
+  console.log("For Smart Contract Tests & Selenium UI Tests:");
+  console.log("Copy this contract address to your tests/giftcard_test.py and tests/selenium_test.py files.\n");
   console.log(`const CONTRACT_ADDRESS = '${giftCard.address}';`);
   console.log("=================\n");
 }
