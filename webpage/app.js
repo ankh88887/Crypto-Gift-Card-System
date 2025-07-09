@@ -5,6 +5,9 @@ const CONTRACT_ABI = [
     "function redeem(string memory code) public",
     "function getGiftCardValue(bytes32 codeHash) public view returns (uint256)",
     "function isRedeemed(bytes32 codeHash) public view returns (bool)",
+    "function isExpired(bytes32 codeHash) public view returns (bool)", // Bonus: Gift card expiration
+    "function getPurchaseTime(bytes32 codeHash) public view returns (uint256)", // Bonus: Gift card expiration
+    "function getExpirationTime(bytes32 codeHash) public view returns (uint256)", // Bonus: Gift card expiration
     "event GiftCardPurchased(bytes32 indexed codeHash, uint256 value, address buyer)",
     "event GiftCardRedeemed(bytes32 indexed codeHash, uint256 value, address redeemer)"
 ];
@@ -23,8 +26,87 @@ const accountBalance = document.getElementById('account-balance');
 const statusMessages = document.getElementById('status-messages');
 const buyBtn = document.getElementById('buy-btn');
 const redeemBtn = document.getElementById('redeem-btn');
+const checkBtn = document.getElementById('check-btn'); // Bonus: Gift card expiration
+const cardStatus = document.getElementById('card-status'); // Bonus: Gift card expiration
 
-// Utility functions
+// Wallet management DOM elements
+const switchAccountBtn = document.getElementById('switch-account-btn');
+const disconnectBtn = document.getElementById('disconnect-btn');
+
+// Switch account function
+async function switchAccount() {
+    try {
+        showStatus('Opening account selection...', 'info');
+        
+        // Request permission to connect different accounts
+        await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{
+                eth_accounts: {}
+            }]
+        });
+        
+        // Reconnect with the newly selected account
+        await connectWallet();
+        
+        showStatus('Account switched successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error switching account:', error);
+        if (error.code === 4001) {
+            showStatus('Account switch cancelled by user', 'info');
+        } else {
+            showStatus('Failed to switch account. Please try again.', 'error');
+        }
+    }
+}
+
+// Disconnect function
+async function disconnectWallet() {
+    try {
+        // Reset the connection state
+        resetWalletConnection();
+        showStatus('Wallet disconnected successfully', 'success');
+    } catch (error) {
+        console.error('Error disconnecting wallet:', error);
+        showStatus('Error disconnecting wallet', 'error');
+    }
+}
+
+// Bonus: Utility functions for expiration handling
+function formatExpirationDate(timestamp) {
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+}
+
+function getDaysUntilExpiration(expirationTimestamp) {
+    const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    const secondsUntilExpiration = expirationTimestamp - now;
+    return Math.ceil(secondsUntilExpiration / (24 * 60 * 60)); // Convert to days
+}
+
+function getTimeUntilExpiration(expirationTimestamp) {
+    const now = Math.floor(Date.now() / 1000);
+    const secondsUntilExpiration = expirationTimestamp - now;
+    
+    if (secondsUntilExpiration <= 0) {
+        return "Expired";
+    }
+    
+    const days = Math.floor(secondsUntilExpiration / (24 * 60 * 60));
+    const hours = Math.floor((secondsUntilExpiration % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((secondsUntilExpiration % (60 * 60)) / 60);
+    
+    if (days > 0) {
+        return `${days} day(s), ${hours} hour(s)`;
+    } else if (hours > 0) {
+        return `${hours} hour(s), ${minutes} minute(s)`;
+    } else {
+        return `${minutes} minute(s)`;
+    }
+}
+
+// Existing utility functions
 function showStatus(message, type = 'info') {
     const statusDiv = document.createElement('div');
     statusDiv.className = `status ${type}`;
@@ -34,7 +116,9 @@ function showStatus(message, type = 'info') {
     
     // Auto-hide after 5 seconds
     setTimeout(() => {
-        statusDiv.remove();
+        if (statusDiv.parentNode) {
+            statusDiv.remove();
+        }
     }, 5000);
 }
 
@@ -42,7 +126,7 @@ function hashCode(code) {
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(code));
 }
 
-// Wallet connection functions
+// ENHANCED: Wallet connection functions with button management
 async function connectWallet() {
     try {
         // Check if MetaMask is installed
@@ -69,6 +153,19 @@ async function connectWallet() {
         accountInfo.classList.remove('hidden');
         buyBtn.disabled = false;
         redeemBtn.disabled = false;
+        
+        // Bonus: Enable check button if it exists
+        if (checkBtn) {
+            checkBtn.disabled = false;
+        }
+
+        // Show wallet action buttons
+        if (switchAccountBtn) {
+            switchAccountBtn.style.display = 'inline-block';
+        }
+        if (disconnectBtn) {
+            disconnectBtn.style.display = 'inline-block';
+        }
 
         showStatus('Wallet connected successfully!', 'success');
 
@@ -109,6 +206,7 @@ function handleChainChanged(chainId) {
     location.reload();
 }
 
+// ENHANCED: Reset wallet connection with button management
 function resetWalletConnection() {
     provider = null;
     signer = null;
@@ -120,6 +218,19 @@ function resetWalletConnection() {
     accountInfo.classList.add('hidden');
     buyBtn.disabled = true;
     redeemBtn.disabled = true;
+    
+    // Bonus: Disable check button if it exists
+    if (checkBtn) {
+        checkBtn.disabled = true;
+    }
+    
+    // Hide wallet action buttons
+    if (switchAccountBtn) {
+        switchAccountBtn.style.display = 'none';
+    }
+    if (disconnectBtn) {
+        disconnectBtn.style.display = 'none';
+    }
     
     showStatus('Wallet disconnected', 'info');
 }
@@ -162,7 +273,12 @@ async function buyGiftCard() {
 
         // Wait for confirmation
         const receipt = await tx.wait();
-        showStatus(`Gift card purchased successfully! Transaction confirmed in block ${receipt.blockNumber}`, 'success');
+        
+        // Bonus: Show expiration information in success message
+        const expirationTime = await contract.getExpirationTime(codeHash);
+        const expirationDate = formatExpirationDate(expirationTime);
+        
+        showStatus(`Gift card purchased successfully! Transaction confirmed in block ${receipt.blockNumber}. Expires on: ${expirationDate}`, 'success');
 
         // Clear form
         document.getElementById('buy-code').value = '';
@@ -186,6 +302,7 @@ async function buyGiftCard() {
     }
 }
 
+// Bonus: Enhanced redeem function with expiration checks
 async function redeemGiftCard() {
     try {
         const code = document.getElementById('redeem-code').value.trim();
@@ -195,18 +312,19 @@ async function redeemGiftCard() {
             return;
         }
 
-        showStatus('Processing redemption...', 'info');
-        redeemBtn.disabled = true;
-        redeemBtn.textContent = 'Processing...';
+        if (!contract) {
+            showStatus('Contract not initialized. Please connect your wallet first.', 'error');
+            return;
+        }
 
+        showStatus('Checking gift card status...', 'info');
+        
         const codeHash = hashCode(code);
 
         // Check if gift card exists
         const giftCardValue = await contract.getGiftCardValue(codeHash);
         if (giftCardValue.eq(0)) {
             showStatus('Gift card does not exist', 'error');
-            redeemBtn.disabled = false;
-            redeemBtn.textContent = 'Redeem Gift Card';
             return;
         }
 
@@ -214,10 +332,30 @@ async function redeemGiftCard() {
         const isRedeemed = await contract.isRedeemed(codeHash);
         if (isRedeemed) {
             showStatus('This gift card has already been redeemed', 'error');
-            redeemBtn.disabled = false;
-            redeemBtn.textContent = 'Redeem Gift Card';
             return;
         }
+
+        // Bonus: Check if expired
+        const isExpired = await contract.isExpired(codeHash);
+        if (isExpired) {
+            const expirationTime = await contract.getExpirationTime(codeHash);
+            const expirationDate = formatExpirationDate(expirationTime);
+            showStatus(`This gift card expired on ${expirationDate}`, 'error');
+            return;
+        }
+
+        // Bonus: Show expiration warning if close to expiring
+        const expirationTime = await contract.getExpirationTime(codeHash);
+        const daysUntilExpiration = getDaysUntilExpiration(expirationTime);
+        
+        if (daysUntilExpiration <= 3 && daysUntilExpiration > 0) {
+            const timeRemaining = getTimeUntilExpiration(expirationTime);
+            showStatus(`Warning: This gift card expires in ${timeRemaining}`, 'info');
+        }
+
+        showStatus('Processing redemption...', 'info');
+        redeemBtn.disabled = true;
+        redeemBtn.textContent = 'Processing...';
 
         // Send transaction
         const tx = await contract.redeem(code);
@@ -238,6 +376,8 @@ async function redeemGiftCard() {
         console.error('Error redeeming gift card:', error);
         if (error.code === 4001) {
             showStatus('Transaction cancelled by user', 'error');
+        } else if (error.message.includes('expired')) {
+            showStatus('This gift card has expired and cannot be redeemed', 'error');
         } else {
             showStatus('Failed to redeem gift card. Please try again.', 'error');
         }
@@ -247,10 +387,97 @@ async function redeemGiftCard() {
     }
 }
 
+// Bonus: Function to check gift card status
+async function checkGiftCardStatus() {
+    try {
+        const code = document.getElementById('check-code').value.trim();
+
+        if (!code) {
+            showStatus('Please enter a gift card code', 'error');
+            return;
+        }
+
+        if (!contract) {
+            showStatus('Contract not initialized. Please connect your wallet first.', 'error');
+            return;
+        }
+
+        const codeHash = hashCode(code);
+
+        // Get gift card info
+        const giftCardValue = await contract.getGiftCardValue(codeHash);
+        const isRedeemed = await contract.isRedeemed(codeHash);
+        const isExpired = await contract.isExpired(codeHash);
+        const purchaseTime = await contract.getPurchaseTime(codeHash);
+        const expirationTime = await contract.getExpirationTime(codeHash);
+
+        // Display status
+        if (cardStatus) {
+            cardStatus.classList.remove('hidden', 'expired', 'expiring-soon', 'valid');
+
+            if (giftCardValue.eq(0)) {
+                cardStatus.innerHTML = '<strong>Status:</strong> Gift card does not exist';
+                cardStatus.classList.add('expired');
+            } else if (isRedeemed) {
+                cardStatus.innerHTML = '<strong>Status:</strong> Already redeemed';
+                cardStatus.classList.add('expired');
+            } else if (isExpired) {
+                const expirationDate = formatExpirationDate(expirationTime);
+                cardStatus.innerHTML = `
+                    <strong>Status:</strong> Expired<br>
+                    <strong>Value:</strong> ${ethers.utils.formatEther(giftCardValue)} ETH<br>
+                    <strong>Expired on:</strong> ${expirationDate}
+                `;
+                cardStatus.classList.add('expired');
+            } else {
+                const valueInEth = ethers.utils.formatEther(giftCardValue);
+                const purchaseDate = formatExpirationDate(purchaseTime);
+                const expirationDate = formatExpirationDate(expirationTime);
+                const timeRemaining = getTimeUntilExpiration(expirationTime);
+                const daysUntilExpiration = getDaysUntilExpiration(expirationTime);
+
+                cardStatus.innerHTML = `
+                    <strong>Status:</strong> Valid${daysUntilExpiration <= 3 ? ' (Expiring Soon!)' : ''}<br>
+                    <strong>Value:</strong> ${valueInEth} ETH<br>
+                    <strong>Purchased:</strong> ${purchaseDate}<br>
+                    <strong>Expires:</strong> ${expirationDate}<br>
+                    <strong>Time remaining:</strong> ${timeRemaining}
+                `;
+                
+                if (daysUntilExpiration <= 3) {
+                    cardStatus.classList.add('expiring-soon');
+                } else {
+                    cardStatus.classList.add('valid');
+                }
+            }
+
+            cardStatus.classList.remove('hidden');
+        }
+
+    } catch (error) {
+        console.error('Error checking gift card status:', error);
+        showStatus('Failed to check gift card status. Please try again.', 'error');
+    }
+}
+
 // Event listeners
 connectWalletBtn.addEventListener('click', connectWallet);
 buyBtn.addEventListener('click', buyGiftCard);
 redeemBtn.addEventListener('click', redeemGiftCard);
+
+// Bonus: Add event listener for check button if it exists
+if (checkBtn) {
+    checkBtn.addEventListener('click', checkGiftCardStatus);
+}
+
+// Add event listeners for wallet management buttons
+if (switchAccountBtn) {
+    switchAccountBtn.addEventListener('click', switchAccount);
+}
+
+if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', disconnectWallet);
+}
 
 // Initialize app
 window.addEventListener('load', async () => {

@@ -15,7 +15,7 @@
         </div>
 
         <div class="content">
-            <!-- Wallet Connection Section -->
+            <!-- Enhanced Wallet Connection Section -->
             <div class="wallet-section">
                 <div id="wallet-status">
                     <button id="connect-wallet" class="btn">Connect MetaMask Wallet</button>
@@ -23,6 +23,10 @@
                 <div id="account-info" class="account-info hidden">
                     <strong>Connected Account:</strong> <span id="account-address"></span><br>
                     <strong>Balance:</strong> <span id="account-balance"></span> ETH
+                    <div class="wallet-actions">
+                        <button id="switch-account-btn" class="btn btn-secondary">Switch Account</button>
+                        <button id="disconnect-btn" class="btn btn-secondary">Disconnect</button>
+                    </div>
                 </div>
             </div>
 
@@ -52,9 +56,20 @@
                 </div>
                 <button id="redeem-btn" class="btn" disabled>Redeem Gift Card</button>
             </div>
+
+            <!-- Gift Card Status Checker -->
+            <div class="section">
+                <h2>🔍 Check Gift Card Status</h2>
+                <div class="form-group">
+                    <label for="check-code">Gift Card Code:</label>
+                    <input type="text" id="check-code" placeholder="Enter gift card code to check status">
+                </div>
+                <button id="check-btn" class="btn" disabled>Check Status</button>
+                <div id="card-status" class="card-status hidden"></div>
+            </div>
         </div>
     </div>
-
+    
     <script src="app.js"></script>
 </body>
 </html>

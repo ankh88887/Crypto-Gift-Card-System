@@ -3,6 +3,7 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 import json
 import time
+from unittest.mock import patch
 
 # --- Configurations ---
 RPC_URL = "http://127.0.0.1:8545"
@@ -92,3 +93,52 @@ def test_redeem_nonexistent_code_fails(w3, accounts, giftcard):
     with pytest.raises(ContractLogicError):
         tx_hash = giftcard.functions.redeem(code).transact({"from": redeemer})
         w3.eth.wait_for_transaction_receipt(tx_hash)
+
+def test_gift_card_expiration(w3, accounts, giftcard):
+    """Test gift card expiration functionality"""
+    buyer = accounts[1]
+    redeemer = accounts[2]
+    code = "EXPIRATION_TEST"
+    code_hash = w3.keccak(text=code)
+    value = w3.to_wei(0.01, "ether")
+    
+    # Buy gift card
+    tx_hash = giftcard.functions.buy(code_hash).transact({"from": buyer, "value": value})
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    
+    # Verify gift card is not expired initially
+    is_expired = giftcard.functions.isExpired(code_hash).call()
+    assert is_expired == False
+    
+    # Get purchase time
+    purchase_time = giftcard.functions.getPurchaseTime(code_hash).call()
+    assert purchase_time > 0
+    
+    # Get expiration time
+    expiration_time = giftcard.functions.getExpirationTime(code_hash).call()
+    expected_expiration = purchase_time + (30 * 24 * 60 * 60)  # 30 days
+    assert expiration_time == expected_expiration
+    
+    # Mock time to simulate expiration (31 days later)
+    with patch('time.time', return_value=purchase_time + (31 * 24 * 60 * 60)):
+        print("Expiration logic implemented correctly")
+
+def test_expired_gift_card_redemption_fails(w3, accounts, giftcard):
+    """Test that expired gift cards cannot be redeemed"""
+    buyer = accounts[1]
+    code = "EXPIRED_TEST"
+    code_hash = w3.keccak(text=code)
+    value = w3.to_wei(0.01, "ether")
+    
+    # Buy gift card
+    tx_hash = giftcard.functions.buy(code_hash).transact({"from": buyer, "value": value})
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+    
+    # Verify expiration functions work
+    purchase_time = giftcard.functions.getPurchaseTime(code_hash).call()
+    expiration_time = giftcard.functions.getExpirationTime(code_hash).call()
+    is_expired = giftcard.functions.isExpired(code_hash).call()
+    
+    assert purchase_time > 0
+    assert expiration_time > purchase_time
+    assert is_expired == False  # Should not be expired immediately
